@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11px; margin: 30px; color: #1a1a2e; }
+  h1 { font-size: 20px; color: #16213e; border-bottom: 2px solid #0f3460; padding-bottom: 6px; }
+  h2 { font-size: 14px; color: #0f3460; margin-top: 24px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  h3 { font-size: 12px; color: #333; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { background: #0f3460; color: white; padding: 5px 8px; text-align: left; font-size: 10px; }
+  td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  .badge { padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 10px; }
+  .badge-beat { background: #d4edda; color: #155724; }
+  .badge-miss { background: #f8d7da; color: #721c24; }
+  .badge-inline { background: #fff3cd; color: #856404; }
+  .badge-na { background: #e9ecef; color: #495057; }
+  .kpi-grid { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0; }
+  .kpi-box { border: 1px solid #ddd; border-radius: 4px; padding: 10px 14px; min-width: 140px; }
+  .kpi-label { font-size: 9px; color: #666; text-transform: uppercase; }
+  .kpi-value { font-size: 18px; font-weight: bold; color: #0f3460; }
+  .kpi-sub { font-size: 9px; color: #888; }
+  .section { margin-bottom: 24px; }
+  .meta { font-size: 9px; color: #888; margin-bottom: 16px; }
+  .guidance-tag { font-weight: bold; }
+  .tag-conservative { color: #155724; }
+  .tag-aggressive { color: #721c24; }
+  .tag-in-line { color: #856404; }
+  .synthesis { background: #f8f9fa; border-left: 4px solid #0f3460; padding: 12px; line-height: 1.6; }
+  @page { margin: 1.5cm; }
+</style>
+</head>
+<body>
+<h1>Earnings Intelligence Report: {{ ticker }} — {{ period }}</h1>
+<p class="meta">Generated {{ generated_at }} | All data from public sources.</p>
+
+<!-- Module 1: Earnings Summary -->
+<div class="section">
+  <h2>1. Earnings Summary</h2>
+  {% if earnings %}
+  <div class="kpi-grid">
+    <div class="kpi-box">
+      <div class="kpi-label">EPS Actual</div>
+      <div class="kpi-value">{{ earnings.eps.actual if earnings.eps.actual is not none else '—' }}</div>
+      <div class="kpi-sub">Est: {{ earnings.eps.estimate if earnings.eps.estimate is not none else '—' }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">EPS Surprise</div>
+      <div class="kpi-value">
+        {% if earnings.eps.surprise_pct is not none %}{{ earnings.eps.surprise_pct }}%{% else %}—{% endif %}
+      </div>
+      <div class="kpi-sub">
+        <span class="badge badge-{{ earnings.eps.badge.lower().replace(' ', '') }}">{{ earnings.eps.badge }}</span>
+      </div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Revenue Actual</div>
+      <div class="kpi-value">
+        {% if earnings.revenue.actual is not none %}${{ "{:,.0f}".format(earnings.revenue.actual) }}{% else %}—{% endif %}
+      </div>
+      <div class="kpi-sub">YoY: {{ earnings.revenue.yoy_pct if earnings.revenue.yoy_pct is not none else '—' }}%</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Gross Margin</div>
+      <div class="kpi-value">{{ earnings.margins.gross_margin_pct if earnings.margins.gross_margin_pct is not none else '—' }}%</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Op. Margin</div>
+      <div class="kpi-value">{{ earnings.margins.operating_margin_pct if earnings.margins.operating_margin_pct is not none else '—' }}%</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Module 3: Guidance Tracker -->
+<div class="section">
+  <h2>2. Guidance Tracker</h2>
+  {% if guidance %}
+  <p>Beat rate: <strong>{{ guidance.summary.beat_rate }}%</strong> over {{ guidance.summary.quarters_analyzed }} quarters |
+     Avg beat: <strong>{{ guidance.summary.avg_beat_magnitude_pct }}%</strong> |
+     Style: <strong class="guidance-tag tag-{{ guidance.summary.guidance_style }}">{{ guidance.summary.guidance_style | upper }}</strong>
+  </p>
+  <table>
+    <thead><tr><th>Period</th><th>EPS Actual</th><th>EPS Estimate</th><th>Beat %</th></tr></thead>
+    <tbody>
+    {% for q in guidance.quarters %}
+    <tr>
+      <td>{{ q.date }}</td>
+      <td>{{ q.eps_actual if q.eps_actual is not none else '—' }}</td>
+      <td>{{ q.eps_estimate if q.eps_estimate is not none else '—' }}</td>
+      <td>{{ q.eps_beat_pct if q.eps_beat_pct is not none else '—' }}%</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+<!-- Module 4: Price Performance & Ratings -->
+<div class="section">
+  <h2>3. Price Performance &amp; Analyst Ratings</h2>
+  {% if price %}
+  <div class="kpi-grid">
+    <div class="kpi-box">
+      <div class="kpi-label">Current Price</div>
+      <div class="kpi-value">${{ price.current_info.current_price }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">52W High</div>
+      <div class="kpi-value">${{ price.current_info.week_52_high }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">52W Low</div>
+      <div class="kpi-value">${{ price.current_info.week_52_low }}</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Mean PT</div>
+      <div class="kpi-value">${{ price.ratings.consensus.mean_price_target }}</div>
+      <div class="kpi-sub">{{ price.ratings.consensus.pt_upside_pct }}% upside</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-label">Consensus</div>
+      <div class="kpi-value">{{ price.ratings.consensus.buy }}B / {{ price.ratings.consensus.hold }}H / {{ price.ratings.consensus.sell }}S</div>
+    </div>
+  </div>
+
+  <h3>Recent Rating Changes</h3>
+  <table>
+    <thead><tr><th>Date</th><th>Firm</th><th>From</th><th>To</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for r in price.ratings.changes[:10] %}
+    <tr>
+      <td>{{ r.date }}</td>
+      <td>{{ r.firm }}</td>
+      <td>{{ r.from_grade }}</td>
+      <td>{{ r.to_grade }}</td>
+      <td>{{ r.action }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+<!-- Module 2: Events Timeline -->
+<div class="section">
+  <h2>4. Events Timeline (recent 20)</h2>
+  {% if events %}
+  <table>
+    <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Source</th></tr></thead>
+    <tbody>
+    {% for e in events[:20] %}
+    <tr>
+      <td>{{ e.date }}</td>
+      <td>{{ e.type }}</td>
+      <td>{{ e.title[:80] }}</td>
+      <td>{{ e.source }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+<!-- Module 5: AI Synthesis -->
+<div class="section">
+  <h2>5. AI Synthesis</h2>
+  {% if synthesis %}
+  <div class="synthesis">{{ synthesis | replace('\n', '<br>') }}</div>
+  {% else %}
+  <p><em>AI synthesis not available in this export.</em></p>
+  {% endif %}
+</div>
+
+</body>
+</html>
